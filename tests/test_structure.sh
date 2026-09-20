@@ -27,6 +27,8 @@ done
 
 check_file  "scripts/start.sh"
 check_exec  "scripts/start.sh"
+check_file  "scripts/generate_notebooks.py"
+check_file  "notebooks/mnist1d_crisp_dm.ipynb"
 check_file  "README.md"
 check_file  "CLAUDE.md"
 
