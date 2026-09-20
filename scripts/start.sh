@@ -164,7 +164,7 @@ case "${SERVICE}" in
     echo ""
     echo "  Push a snapshot from Python:"
     echo "    from evidently.ui.workspace import Workspace"
-    echo "    ws = Workspace('http://${HOST}:${EVIDENTLY_PORT:-8001}')"
+    echo "    ws = Workspace(url='http://${HOST}:${EVIDENTLY_PORT:-8001}')"
     echo ""
     echo "  Credentials: ${ENV_FILE}"
     ;;
@@ -188,8 +188,7 @@ case "${SERVICE}" in
     ;;
   bentoml)
     echo ""
-    echo "  BentoML REST API      http://${HOST}:${BENTOML_PORT:-3001}"
-    echo "  Swagger UI            http://${HOST}:${BENTOML_PORT:-3001}"
+    echo "  BentoML API + Swagger http://${HOST}:${BENTOML_PORT:-3001}"
     echo ""
     echo "  Health check:"
     echo "    curl http://${HOST}:${BENTOML_PORT:-3001}/health"

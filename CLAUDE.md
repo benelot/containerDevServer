@@ -14,29 +14,51 @@ services/          One directory per stack; each is independent
   label-studio/    Label Studio + PostgreSQL (data annotation)
   jupyterlab/      JupyterLab (datascience-notebook image)
   dagster/         Dagster webserver + daemon + PostgreSQL (pipeline orchestration)
+    pipelines/mnist1d_pipeline.py  Four-asset CRISP-DM example pipeline
   evidently/       Evidently UI (data drift and model monitoring)
   bentoml/         BentoML REST serving (loads Production model from MLflow)
+    service.py     BentoML 1.x @bentoml.service class; loads from MLflow on startup
   monitoring/      Prometheus + Grafana + node_exporter + cAdvisor + blackbox probes
 
 scripts/
   start.sh         Start/stop any stack; --random assigns unused ports
+  backup.sh        Dump PostgreSQL DBs, mirror MinIO buckets, tar Docker volumes
+  generate_notebooks.py             Regenerate notebooks/mnist1d_crisp_dm.ipynb
+  generate_data_quality_notebook.py Regenerate notebooks/data_quality.ipynb
 
 tests/
   run_tests.sh     Test runner (structure, YAML, env coverage, Ansible, Compose)
   test_smoke.sh    Integration smoke test (INTEGRATION=1 required)
+
+notebooks/
+  mnist1d_crisp_dm.ipynb   Full CRISP-DM cycle on MNIST 1D; do not edit directly
+  data_quality.ipynb       Pandera / DeepChecks / Evidently / Pointblank; do not edit directly
 ```
 
 ## Key conventions
 
 - Every service has a `docker-compose.yml` and `.env.example`.
-- All ports are `${VAR_NAME:-default}` -- override in `.env`, or run with `--random`.
+- All ports are `${VAR_NAME:-default}` — override in `.env`, or run with `--random`.
 - Default ports are offset per service so stacks can run simultaneously:
   MLflow 5000/5432/9000/9001, DVC 9010/9011, Label Studio 8080/5433, Jupyter 8888,
   Dagster 3000/5434, Evidently 8001, BentoML 3001,
   Monitoring: Grafana 3002, Prometheus 9090, cAdvisor 8082.
 - The `start.sh` script copies `.env.example` to `.env` on first run.
+- Notebooks are generated files — edit the generator scripts, not the `.ipynb` files.
 - Adding a new service: create `services/<name>/docker-compose.yml` and `.env.example`,
   add a case block in `scripts/start.sh`, add `check_file` lines in `tests/test_structure.sh`.
+
+## BentoML service
+
+Uses BentoML 1.x API: `@bentoml.service` class decorator, `@bentoml.api` method decorators.
+The CMD in the Dockerfile is `bentoml serve service:Mnist1DClassifier`.
+Do not use the BentoML 0.x `bentoml.Runner`, `bentoml.Service()`, or `bentoml.io` API — those
+were removed in 1.x.
+
+## Dagster pipeline
+
+The registered model name is `mnist1d-conv1d` in both the pipeline and BentoML. Changing it
+in one place requires changing it in the other, or the serving layer will not find the model.
 
 ## Running tests
 

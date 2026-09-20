@@ -39,6 +39,16 @@ Monitoring closes the operational side of the CRISP-DM loop: it surfaces infrast
 # http://localhost:9090  — Prometheus
 ```
 
+## Importing Grafana dashboards
+
+The stack ships with a custom Service Health dashboard provisioned automatically. For richer host and container views, import these community dashboards from the Grafana UI (**Dashboards → Import → Enter dashboard ID**):
+
+| Dashboard ID | Name | What it shows |
+|---|---|---|
+| 1860 | Node Exporter Full | Host CPU, RAM, disk I/O, network throughput |
+| 14282 | Docker + cAdvisor | Per-container CPU and memory |
+| 12239 | DCGM GPU Metrics | NVIDIA GPU utilisation, memory, temperature (requires `--profile gpu`) |
+
 ## GPU metrics
 
 GPU monitoring uses the NVIDIA DCGM exporter and requires the NVIDIA Container Toolkit on the host. It is gated behind a Docker Compose profile so non-NVIDIA hosts start the stack without errors.
