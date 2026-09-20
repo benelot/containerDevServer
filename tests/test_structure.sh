@@ -20,7 +20,7 @@ check_file "ansible/roles/docker_config/tasks/main.yml"
 check_file "ansible/roles/docker_config/handlers/main.yml"
 check_file "ansible/roles/docker_config/defaults/main.yml"
 
-for svc in mlflow dvc label-studio jupyterlab dagster evidently; do
+for svc in mlflow dvc label-studio jupyterlab dagster evidently bentoml; do
     check_file "services/${svc}/docker-compose.yml"
     check_file "services/${svc}/.env.example"
 done
@@ -31,6 +31,8 @@ check_file "services/dagster/workspace.yaml"
 check_file "services/dagster/requirements.txt"
 check_file "services/dagster/pipelines/mnist1d_pipeline.py"
 check_file "services/evidently/Dockerfile"
+check_file "services/bentoml/Dockerfile"
+check_file "services/bentoml/service.py"
 
 check_file  "scripts/start.sh"
 check_exec  "scripts/start.sh"

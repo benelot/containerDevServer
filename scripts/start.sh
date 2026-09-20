@@ -168,6 +168,25 @@ case "${SERVICE}" in
     echo ""
     echo "  Credentials: ${ENV_FILE}"
     ;;
+  bentoml)
+    echo ""
+    echo "  BentoML REST API      http://${HOST}:${BENTOML_PORT:-3001}"
+    echo "  Swagger UI            http://${HOST}:${BENTOML_PORT:-3001}"
+    echo ""
+    echo "  Health check:"
+    echo "    curl http://${HOST}:${BENTOML_PORT:-3001}/health"
+    echo ""
+    echo "  Run a prediction (40-value sequence):"
+    echo "    curl -X POST http://${HOST}:${BENTOML_PORT:-3001}/predict \\"
+    echo "      -H 'Content-Type: application/json' \\"
+    echo "      -d '[[0.1, -0.2, 0.3, 0.0, 0.1, -0.1, 0.2, 0.0, 0.1, -0.2,'"
+    echo "           '0.3, 0.0, 0.1, -0.1, 0.2, 0.0, 0.1, -0.2, 0.3, 0.0,'"
+    echo "           '0.1, -0.1, 0.2, 0.0, 0.1, -0.2, 0.3, 0.0, 0.1, -0.1,'"
+    echo "           '0.2, 0.0, 0.1, -0.2, 0.3, 0.0, 0.1, -0.1, 0.2, 0.0]]'"
+    echo ""
+    echo "  Requires a Production model in MLflow (run the CRISP-DM notebook first)."
+    echo "  Credentials: ${ENV_FILE}"
+    ;;
   *)
     echo "  Stack started. Check 'docker compose ps' for port details."
     ;;

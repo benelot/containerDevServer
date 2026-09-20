@@ -47,9 +47,9 @@ A self-hosted data science development environment built on Docker Compose and p
 | Data Preparation | JupyterLab, DVC, Dagster + Pandera | Clean and transform; version every dataset; validate schema before it reaches training |
 | Modelling | JupyterLab, Dagster, MLflow | Iterate on architecture and hyperparameters; every run is tracked automatically |
 | Evaluation | MLflow, Dagster + DeepChecks, Evidently | Compare experiments; check data and model quality; surface results to stakeholders |
-| Deployment | MLflow Model Registry, Dagster, Evidently | Register and stage models; schedule retraining; monitor production data for drift |
+| Deployment | MLflow Model Registry, BentoML, Dagster, Evidently | Register and stage models; serve via REST API; schedule retraining; monitor for drift |
 
-The feedback loop that closes the cycle is: Evidently detects drift in production data -> new samples are sent to Label Studio for re-labeling -> the Dagster pipeline re-runs with the updated labeled dataset -> a new model is registered in MLflow.
+The feedback loop that closes the cycle is: Evidently detects drift in production data flowing through BentoML -> new samples are sent to Label Studio for re-labeling -> the Dagster pipeline re-runs with the updated labeled dataset -> a new model is registered in MLflow -> BentoML loads the new Production model on restart.
 
 ---
 
@@ -63,6 +63,7 @@ The feedback loop that closes the cycle is: Evidently detects drift in productio
 | **Label Studio** | http://host:8080 | Data annotation |
 | **Dagster** | http://host:3000 | Pipeline orchestration |
 | **Evidently** | http://host:8001 | Data drift and model monitoring UI |
+| **BentoML** | http://host:3001 | Model serving (REST API + Swagger UI) |
 
 Each service has its own README in `services/<name>/README.md` with configuration details and a full CRISP-DM role description.
 
@@ -191,6 +192,23 @@ Pipeline orchestrator built on software-defined assets. The included `mnist1d_fu
 - **Pointblank** -- interactive HTML validation reports for stakeholder-facing data quality evidence
 
 Great Expectations was evaluated but excluded. Pandera covers the same DataFrame validation use case with a cleaner API; the GX enterprise governance features are not needed at this scale.
+
+### BentoML (`services/bentoml/`)
+
+Model serving layer. Loads the `Production` model from the MLflow registry on startup and exposes a typed REST API with automatic Swagger documentation. Returns HTTP 503 in degraded mode if no Production model is registered yet, so the container can start alongside the rest of the stack safely.
+
+```bash
+./scripts/start.sh bentoml
+# http://localhost:3001         -- Swagger UI
+# http://localhost:3001/health  -- model load status
+
+curl -X POST http://localhost:3001/predict \
+  -H "Content-Type: application/json" \
+  -d '[[0.1, -0.2, 0.3, ...]]'
+# {"predictions": [3], "probabilities": [[0.01, ..., 0.92, ...]]}
+```
+
+Change `MLFLOW_MODEL_NAME` or `MLFLOW_MODEL_STAGE` in `.env` to serve a different model or stage without touching any code.
 
 ### Evidently (`services/evidently/`)
 
