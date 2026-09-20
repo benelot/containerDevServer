@@ -1,0 +1,8 @@
+---
+- name: Set up Docker for data science workloads
+  hosts: all
+  become: true
+
+  roles:
+    - docker
+    - docker_config
