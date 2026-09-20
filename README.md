@@ -1,6 +1,6 @@
 # Container Dev Server
 
-A self-hosted data science development environment built on Docker Compose, provisioned with Ansible.
+A self-hosted data science development environment built on Docker Compose and provisioned with Ansible. Every service in this stack maps to a specific phase of the CRISP-DM methodology, forming a complete local ML platform.
 
 ## Prerequisites
 
@@ -10,17 +10,75 @@ A self-hosted data science development environment built on Docker Compose, prov
 
 ---
 
+## CRISP-DM and this stack
+
+**CRISP-DM** (Cross-Industry Standard Process for Data Mining) is a methodology that describes the full lifecycle of a data science project as six iterative phases. The cycle is not linear -- findings in a later phase regularly send you back to an earlier one.
+
+```
+   Business          Data             Data
+  Understanding  Understanding    Preparation
+       |               |               |
+       v               v               v
+  +-----------+  +-----------+  +-----------+
+  | Define    |  | Explore & |  | Clean,    |
+  | goal &    |  | describe  |  | transform,|
+  | success   |  | the data  |  | engineer  |
+  | criteria  |  |           |  | features  |
+  +-----------+  +-----------+  +-----------+
+       ^                               |
+       |                               v
+  +-----------+  +-----------+  +-----------+
+  | Deploy &  |  | Evaluate  |  | Model     |
+  | monitor   |  | against   |  | Select,   |
+  | in prod   |  | business  |  | train &   |
+  |           |  | criteria  |  | tune      |
+  +-----------+  +-----------+  +-----------+
+   Deployment     Evaluation      Modelling
+       ^               |
+       +---------------+  (monitor -> re-label -> retrain)
+```
+
+### How each service maps to the cycle
+
+| Phase | Primary tools | Role |
+|---|---|---|
+| Business Understanding | JupyterLab | Write down the problem definition and success criteria before touching data |
+| Data Understanding | JupyterLab, Label Studio | Explore, visualise, and annotate raw data; identify issues early |
+| Data Preparation | JupyterLab, DVC, Dagster + Pandera | Clean and transform; version every dataset; validate schema before it reaches training |
+| Modelling | JupyterLab, Dagster, MLflow | Iterate on architecture and hyperparameters; every run is tracked automatically |
+| Evaluation | MLflow, Dagster + DeepChecks, Evidently | Compare experiments; check data and model quality; surface results to stakeholders |
+| Deployment | MLflow Model Registry, Dagster, Evidently | Register and stage models; schedule retraining; monitor production data for drift |
+
+The feedback loop that closes the cycle is: Evidently detects drift in production data -> new samples are sent to Label Studio for re-labeling -> the Dagster pipeline re-runs with the updated labeled dataset -> a new model is registered in MLflow.
+
+---
+
+## Services at a glance
+
+| Service | Default URL | Purpose |
+|---|---|---|
+| **JupyterLab** | http://host:8888 | Interactive exploration and prototyping |
+| **MLflow** | http://host:5000 | Experiment tracking and model registry |
+| **DVC remote** | MinIO at host:9010 | Dataset and artifact versioning |
+| **Label Studio** | http://host:8080 | Data annotation |
+| **Dagster** | http://host:3000 | Pipeline orchestration |
+| **Evidently** | http://host:8001 | Data drift and model monitoring UI |
+
+Each service has its own README in `services/<name>/README.md` with configuration details and a full CRISP-DM role description.
+
+---
+
 ## 1. Provision the host
 
 ```bash
 # Edit ansible/inventory/hosts.yml first:
-#   - Set docker_data_root to your data disk (e.g. /data/docker)
-#   - Set docker_users to the OS users that need Docker access
+#   docker_data_root: path to your data disk  (e.g. /data/docker)
+#   docker_users:     OS users that need Docker access
 
 ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook.yml
 ```
 
-After this, listed users can run `docker` without sudo (log out and back in to refresh group membership).
+After this, listed users can run `docker` without sudo (log out and back in).
 
 ---
 
@@ -28,93 +86,138 @@ After this, listed users can run `docker` without sudo (log out and back in to r
 
 ```bash
 # First run copies .env.example -> .env automatically
+./scripts/start.sh jupyterlab
 ./scripts/start.sh mlflow
 ./scripts/start.sh dvc
 ./scripts/start.sh label-studio
-./scripts/start.sh jupyterlab
+./scripts/start.sh dagster
+./scripts/start.sh evidently
 
-# Assign random available ports (written to .env)
+# Assign random available ports (written to .env, useful on shared hosts)
 ./scripts/start.sh mlflow --random
 
 # Stop a stack
 ./scripts/start.sh mlflow --stop
 ```
 
-The script prints all service URLs and client config after startup.
+The script prints service URLs and client configuration after startup.
+
+---
+
+## 3. Run a full CRISP-DM example
+
+The repository includes two notebooks that walk through the complete cycle on the MNIST 1D dataset (40-point 1D digit sequences).
+
+```bash
+# Generate or regenerate the notebooks from source scripts:
+python3 scripts/generate_notebooks.py
+python3 scripts/generate_data_quality_notebook.py
+```
+
+| Notebook | What it covers |
+|---|---|
+| `notebooks/mnist1d_crisp_dm.ipynb` | Full CRISP-DM cycle: data exploration, Conv1D training with MLflow, confusion matrix, t-SNE, model registration |
+| `notebooks/data_quality.ipynb` | Data validation with Pandera, DeepChecks, Evidently, and Pointblank |
+
+Open either notebook in JupyterLab once the MLflow and JupyterLab stacks are running.
 
 ---
 
 ## Services
 
-### MLflow (`services/mlflow/`)
+### JupyterLab (`services/jupyterlab/`)
 
-Full MLflow tracking server with PostgreSQL backend and MinIO artifact store.
+Interactive workspace for all exploratory and prototyping work. Runs `jupyter/datascience-notebook` (Python, R, Julia). The repo's `notebooks/` directory is bind-mounted so notebooks are saved directly to Git. MLflow connection details are injected as environment variables so logging works out of the box.
 
-| Service | Default URL |
-|---|---|
-| MLflow Tracking UI | http://host:5000 |
-| MinIO Console | http://host:9001 |
-| MinIO S3 API | http://host:9000 |
-| PostgreSQL | host:5432 |
-
-Python client setup:
-```python
-import mlflow
-mlflow.set_tracking_uri("http://host:5000")
+```bash
+./scripts/start.sh jupyterlab
+# http://localhost:8888/?token=<JUPYTER_TOKEN from .env>
 ```
 
-### DVC remote cache (`services/dvc/`)
+### MLflow (`services/mlflow/`)
 
-MinIO S3 remote for [DVC](https://dvc.org) artifact and data versioning.
+Experiment tracker, artifact store, and model registry. Uses PostgreSQL for run metadata (supports concurrent writers) and MinIO as an S3-compatible artifact backend. The `--serve-artifacts` flag means clients never need direct MinIO credentials.
 
-After starting, run once in your DVC repo:
 ```bash
+./scripts/start.sh mlflow
+
+import mlflow
+mlflow.set_tracking_uri("http://localhost:5000")
+```
+
+| Endpoint | Port |
+|---|---|
+| MLflow UI | 5000 |
+| MinIO S3 API | 9000 |
+| MinIO Console | 9001 |
+| PostgreSQL | 5432 |
+
+### DVC remote (`services/dvc/`)
+
+MinIO S3 remote for dataset versioning. A separate MinIO instance (ports 9010/9011) keeps DVC data isolated from MLflow artifacts. Switching to a real S3 bucket later requires changing only the endpoint URL.
+
+```bash
+./scripts/start.sh dvc
+
 dvc remote add -d myremote s3://dvc-cache
-dvc remote modify myremote endpointurl http://host:9010
+dvc remote modify myremote endpointurl http://localhost:9010
 dvc remote modify myremote access_key_id minioadmin
 dvc remote modify myremote secret_access_key minioadmin_secret
 ```
 
 ### Label Studio (`services/label-studio/`)
 
-[Label Studio](https://labelstud.io) data annotation tool with PostgreSQL backend.
+Web-based data annotation tool. PostgreSQL backend on port 5433 (offset from MLflow's 5432). Annotated exports can be versioned immediately with DVC and fed into the Dagster pipeline.
 
-| Service | Default URL |
-|---|---|
-| Label Studio UI | http://host:8080 |
-| PostgreSQL | host:5433 |
+```bash
+./scripts/start.sh label-studio
+# http://localhost:8080  --  login: admin@example.com / changeme (set in .env)
+```
 
-Default login: `admin@example.com` / `changeme` (change in `.env`).
+### Dagster (`services/dagster/`)
 
-### JupyterLab (`services/jupyterlab/`)
+Pipeline orchestrator built on software-defined assets. The included `mnist1d_full_pipeline` runs four assets in sequence: download raw data, validate with Pandera, generate quality reports with Evidently and DeepChecks, and train a Conv1D model with all metrics logged to MLflow.
 
-[JupyterLab](https://jupyterlab.readthedocs.io) with Python, R, and Julia kernels
-(`jupyter/datascience-notebook`).
+```bash
+./scripts/start.sh dagster
+# http://localhost:3000  --  Assets > Materialize All, or Jobs > mnist1d_full_pipeline
+```
 
-| Service | Default URL |
-|---|---|
-| JupyterLab | http://host:8888/?token=changeme |
+**Data quality libraries** (installed in the Dagster image):
 
-Notebooks persist in a Docker volume (`workspace`). Change `JUPYTER_IMAGE` in `.env`
-to `jupyter/minimal-notebook` for a lighter image without R/Julia.
+- **Pandera** -- schema validation on DataFrames; checks column types, value ranges, and allowed labels at the data ingestion boundary
+- **DeepChecks** -- ML-specific integrity checks: train/test distribution, feature leakage, class imbalance
+- **Evidently** -- drift and quality reports that feed into the monitoring UI; bridges pipeline validation and post-deployment monitoring
+- **Pointblank** -- interactive HTML validation reports for stakeholder-facing data quality evidence
+
+Great Expectations was evaluated but excluded. Pandera covers the same DataFrame validation use case with a cleaner API; the GX enterprise governance features are not needed at this scale.
+
+### Evidently (`services/evidently/`)
+
+Monitoring UI for data drift and model performance over time. Receives JSON snapshots pushed from Python code (notebooks or the Dagster pipeline) and renders them as interactive dashboards. Closing the CRISP-DM loop: when drift is detected, new data flows back to Label Studio for re-labeling.
+
+```bash
+./scripts/start.sh evidently
+# http://localhost:8001
+
+from evidently.ui.workspace import Workspace
+ws = Workspace("http://localhost:8001")
+ws.add_run(project.id, report)
+```
 
 ---
 
 ## Configuration
 
-Each service reads from `services/<name>/.env`. Copy `.env.example` to `.env` and edit
-before starting (the start script does the copy automatically on first run).
-
-All port variables follow the pattern `${VAR_NAME:-default}` in the Compose files,
-so the defaults work without any `.env` and the stacks can run side by side.
+Each service reads from `services/<name>/.env`. The start script copies `.env.example` to `.env` on first run. All ports follow `${VAR_NAME:-default}` so defaults work with no `.env` and all stacks can run simultaneously.
 
 ---
 
 ## Running tests
 
 ```bash
-bash tests/run_tests.sh                  # file structure, YAML, .env coverage, Ansible/Compose validation
-INTEGRATION=1 bash tests/run_tests.sh   # also starts MLflow stack and checks live HTTP endpoints
+bash tests/run_tests.sh                  # structure, YAML, .env coverage, Compose validation
+INTEGRATION=1 bash tests/run_tests.sh   # also starts MLflow and checks live HTTP endpoints
 ```
 
 ---
