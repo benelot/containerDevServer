@@ -1,0 +1,10 @@
+---
+# Miniforge3 installer version. Check https://github.com/conda-forge/miniforge/releases
+mamba_version: "24.3.0-0"
+
+# Install prefix — shared by all users on the machine.
+mamba_prefix: /opt/miniforge3
+
+# OS users who should have mamba initialised in their shell rc file.
+# Defaults to the same list used for docker group membership.
+mamba_users: "{{ docker_users }}"

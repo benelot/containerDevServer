@@ -1,0 +1,43 @@
+---
+- name: Configure system-wide proxy in /etc/environment
+  ansible.builtin.blockinfile:
+    path: /etc/environment
+    create: true
+    marker: "# {mark} ANSIBLE MANAGED — proxy (roles/proxy)"
+    block: |
+      {% if http_proxy %}
+      http_proxy="{{ http_proxy }}"
+      HTTP_PROXY="{{ http_proxy }}"
+      {% endif %}
+      {% if https_proxy %}
+      https_proxy="{{ https_proxy }}"
+      HTTPS_PROXY="{{ https_proxy }}"
+      {% endif %}
+      {% if no_proxy %}
+      no_proxy="{{ no_proxy }}"
+      NO_PROXY="{{ no_proxy }}"
+      {% endif %}
+  when: http_proxy or https_proxy
+
+- name: Configure proxy for Docker daemon
+  when: http_proxy or https_proxy
+  block:
+    - name: Create Docker systemd drop-in directory
+      ansible.builtin.file:
+        path: /etc/systemd/system/docker.service.d
+        state: directory
+        mode: "0755"
+
+    - name: Write Docker proxy drop-in
+      ansible.builtin.template:
+        src: docker_proxy.conf.j2
+        dest: /etc/systemd/system/docker.service.d/http-proxy.conf
+        mode: "0644"
+      notify: reload docker
+
+- name: Remove Docker proxy drop-in when proxy is unset
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d/http-proxy.conf
+    state: absent
+  when: not http_proxy and not https_proxy
+  notify: reload docker

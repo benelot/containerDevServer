@@ -6,6 +6,8 @@
 ansible/           Ansible playbook to provision Docker on a fresh Ubuntu host
   roles/docker/          Install Docker CE + Compose plugin
   roles/docker_config/   Configure daemon.json, docker group membership
+  roles/mamba/           Install Miniforge3 system-wide; init shell for docker_users
+  roles/proxy/           Set http_proxy in /etc/environment and Docker daemon (no-op if unset)
   inventory/hosts.yml    Target hosts and variable overrides
 
 services/          One directory per stack; each is independent

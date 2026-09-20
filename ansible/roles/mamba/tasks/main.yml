@@ -1,0 +1,47 @@
+---
+- name: Check if Miniforge3 is already installed
+  ansible.builtin.stat:
+    path: "{{ mamba_prefix }}/bin/mamba"
+  register: mamba_bin
+
+- name: Download Miniforge3 installer
+  ansible.builtin.get_url:
+    url: >-
+      https://github.com/conda-forge/miniforge/releases/download/{{ mamba_version }}/Miniforge3-{{ mamba_version }}-Linux-{{ ansible_architecture }}.sh
+    dest: /tmp/miniforge3_installer.sh
+    mode: "0755"
+    force: false
+  when: not mamba_bin.stat.exists
+
+- name: Install Miniforge3 to {{ mamba_prefix }}
+  ansible.builtin.command:
+    cmd: bash /tmp/miniforge3_installer.sh -b -p {{ mamba_prefix }}
+    creates: "{{ mamba_prefix }}/bin/mamba"
+  when: not mamba_bin.stat.exists
+
+- name: Make mamba available to all users via /etc/profile.d
+  ansible.builtin.copy:
+    dest: /etc/profile.d/miniforge.sh
+    mode: "0644"
+    content: |
+      # Miniforge3 — managed by Ansible (roles/mamba)
+      export PATH="{{ mamba_prefix }}/bin:$PATH"
+      # Initialise conda for interactive shells without modifying ~/.bashrc
+      if [ -f "{{ mamba_prefix }}/etc/profile.d/conda.sh" ]; then
+        . "{{ mamba_prefix }}/etc/profile.d/conda.sh"
+      fi
+
+- name: Allow mamba_users to write new environments under {{ mamba_prefix }}/envs
+  ansible.builtin.file:
+    path: "{{ mamba_prefix }}/envs"
+    state: directory
+    mode: "0775"
+    group: docker
+
+- name: Initialise mamba in each user's shell rc
+  ansible.builtin.command:
+    cmd: "{{ mamba_prefix }}/bin/mamba init bash"
+  become_user: "{{ item }}"
+  loop: "{{ mamba_users }}"
+  when: mamba_users | length > 0
+  changed_when: false

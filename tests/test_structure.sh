@@ -19,6 +19,12 @@ check_file "ansible/roles/docker/defaults/main.yml"
 check_file "ansible/roles/docker_config/tasks/main.yml"
 check_file "ansible/roles/docker_config/handlers/main.yml"
 check_file "ansible/roles/docker_config/defaults/main.yml"
+check_file "ansible/roles/mamba/tasks/main.yml"
+check_file "ansible/roles/mamba/defaults/main.yml"
+check_file "ansible/roles/proxy/tasks/main.yml"
+check_file "ansible/roles/proxy/defaults/main.yml"
+check_file "ansible/roles/proxy/handlers/main.yml"
+check_file "ansible/roles/proxy/templates/docker_proxy.conf.j2"
 
 for svc in mlflow dvc label-studio jupyterlab dagster evidently bentoml monitoring; do
     check_file "services/${svc}/docker-compose.yml"

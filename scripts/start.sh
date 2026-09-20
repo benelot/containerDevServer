@@ -37,6 +37,14 @@ if [[ ! -d "${SERVICE_DIR}" ]]; then
   exit 1
 fi
 
+# ── Auto-generate ports on first run for this user ────────────────────────────
+PORTS_SENTINEL="${REPO_ROOT}/.ports.${USER}"
+if [[ ! -f "${PORTS_SENTINEL}" ]]; then
+  echo "First run for ${USER} — generating port assignments..."
+  bash "${SCRIPT_DIR}/generate-ports.sh"
+  touch "${PORTS_SENTINEL}"
+fi
+
 # ── Stop path ─────────────────────────────────────────────────────────────────
 if [[ "${STOP}" == "true" ]]; then
   echo "Stopping ${SERVICE} stack..."
