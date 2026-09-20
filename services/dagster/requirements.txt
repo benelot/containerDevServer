@@ -1,0 +1,13 @@
+dagster
+dagster-webserver
+dagster-postgres
+pandera
+pandas>=2.0
+numpy>=1.24
+torch
+scikit-learn
+mlflow
+boto3
+evidently
+deepchecks
+pointblank

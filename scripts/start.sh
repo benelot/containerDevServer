@@ -147,6 +147,27 @@ case "${SERVICE}" in
     echo ""
     echo "  Credentials: ${ENV_FILE}"
     ;;
+  dagster)
+    echo ""
+    echo "  Dagster UI            http://${HOST}:${DAGSTER_PORT:-3000}"
+    echo "  PostgreSQL            ${HOST}:${POSTGRES_PORT:-5434}  db=${POSTGRES_DB:-dagster}"
+    echo ""
+    echo "  Launch the pipeline from the UI or:"
+    echo "    docker compose -f services/dagster/docker-compose.yml exec dagster-webserver \\"
+    echo "      dagster job execute -j mnist1d_full_pipeline -m pipelines.mnist1d_pipeline"
+    echo ""
+    echo "  Credentials: ${ENV_FILE}"
+    ;;
+  evidently)
+    echo ""
+    echo "  Evidently UI          http://${HOST}:${EVIDENTLY_PORT:-8001}"
+    echo ""
+    echo "  Push a snapshot from Python:"
+    echo "    from evidently.ui.workspace import Workspace"
+    echo "    ws = Workspace('http://${HOST}:${EVIDENTLY_PORT:-8001}')"
+    echo ""
+    echo "  Credentials: ${ENV_FILE}"
+    ;;
   *)
     echo "  Stack started. Check 'docker compose ps' for port details."
     ;;

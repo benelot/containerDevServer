@@ -1,0 +1,4 @@
+load_from:
+  - python_file:
+      relative_path: /app/pipelines/mnist1d_pipeline.py
+      location_name: mnist1d

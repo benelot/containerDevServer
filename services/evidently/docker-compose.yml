@@ -1,0 +1,20 @@
+services:
+
+  # ── Evidently AI monitoring UI ───────────────────────────────────────────────
+  # Workspace is a named volume. Push snapshots from notebooks or Dagster
+  # pipelines via the evidently Python SDK, then view them here.
+  evidently:
+    build: .
+    ports:
+      - "${EVIDENTLY_PORT:-8001}:8000"
+    volumes:
+      - evidently_workspace:/workspace
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" 2>/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  evidently_workspace:
