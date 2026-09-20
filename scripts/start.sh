@@ -168,6 +168,24 @@ case "${SERVICE}" in
     echo ""
     echo "  Credentials: ${ENV_FILE}"
     ;;
+  monitoring)
+    echo ""
+    echo "  Grafana               http://${HOST}:${GRAFANA_PORT:-3002}"
+    echo "  Prometheus            http://${HOST}:${PROMETHEUS_PORT:-9090}"
+    echo "  cAdvisor              http://${HOST}:${CADVISOR_PORT:-8082}"
+    echo ""
+    echo "  Grafana login         ${GRAFANA_USER:-admin} / ${GRAFANA_PASSWORD:-admin}"
+    echo ""
+    echo "  GPU monitoring (requires NVIDIA Container Toolkit):"
+    echo "    docker compose -f services/monitoring/docker-compose.yml --profile gpu up -d"
+    echo ""
+    echo "  Recommended community dashboards to import in Grafana:"
+    echo "    1860   Node Exporter Full (host CPU / RAM / network / disk)"
+    echo "    14282  Docker + cAdvisor  (per-container resource usage)"
+    echo "    12239  DCGM GPU Metrics   (NVIDIA GPU -- needs --profile gpu)"
+    echo ""
+    echo "  Credentials: ${ENV_FILE}"
+    ;;
   bentoml)
     echo ""
     echo "  BentoML REST API      http://${HOST}:${BENTOML_PORT:-3001}"

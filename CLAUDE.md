@@ -16,6 +16,7 @@ services/          One directory per stack; each is independent
   dagster/         Dagster webserver + daemon + PostgreSQL (pipeline orchestration)
   evidently/       Evidently UI (data drift and model monitoring)
   bentoml/         BentoML REST serving (loads Production model from MLflow)
+  monitoring/      Prometheus + Grafana + node_exporter + cAdvisor + blackbox probes
 
 scripts/
   start.sh         Start/stop any stack; --random assigns unused ports
@@ -31,7 +32,8 @@ tests/
 - All ports are `${VAR_NAME:-default}` -- override in `.env`, or run with `--random`.
 - Default ports are offset per service so stacks can run simultaneously:
   MLflow 5000/5432/9000/9001, DVC 9010/9011, Label Studio 8080/5433, Jupyter 8888,
-  Dagster 3000/5434, Evidently 8001, BentoML 3001.
+  Dagster 3000/5434, Evidently 8001, BentoML 3001,
+  Monitoring: Grafana 3002, Prometheus 9090, cAdvisor 8082.
 - The `start.sh` script copies `.env.example` to `.env` on first run.
 - Adding a new service: create `services/<name>/docker-compose.yml` and `.env.example`,
   add a case block in `scripts/start.sh`, add `check_file` lines in `tests/test_structure.sh`.

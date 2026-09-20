@@ -20,7 +20,7 @@ check_file "ansible/roles/docker_config/tasks/main.yml"
 check_file "ansible/roles/docker_config/handlers/main.yml"
 check_file "ansible/roles/docker_config/defaults/main.yml"
 
-for svc in mlflow dvc label-studio jupyterlab dagster evidently bentoml; do
+for svc in mlflow dvc label-studio jupyterlab dagster evidently bentoml monitoring; do
     check_file "services/${svc}/docker-compose.yml"
     check_file "services/${svc}/.env.example"
 done
@@ -36,6 +36,8 @@ check_file "services/bentoml/service.py"
 
 check_file  "scripts/start.sh"
 check_exec  "scripts/start.sh"
+check_file  "scripts/backup.sh"
+check_exec  "scripts/backup.sh"
 check_file  "scripts/generate_notebooks.py"
 check_file  "scripts/generate_data_quality_notebook.py"
 check_file  "notebooks/mnist1d_crisp_dm.ipynb"

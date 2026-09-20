@@ -64,6 +64,7 @@ The feedback loop that closes the cycle is: Evidently detects drift in productio
 | **Dagster** | http://host:3000 | Pipeline orchestration |
 | **Evidently** | http://host:8001 | Data drift and model monitoring UI |
 | **BentoML** | http://host:3001 | Model serving (REST API + Swagger UI) |
+| **Monitoring** | Grafana http://host:3002 | Service health, CPU/RAM/GPU dashboards |
 
 Each service has its own README in `services/<name>/README.md` with configuration details and a full CRISP-DM role description.
 
