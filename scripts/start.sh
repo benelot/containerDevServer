@@ -41,6 +41,7 @@ fi
 if [[ "${STOP}" == "true" ]]; then
   echo "Stopping ${SERVICE} stack..."
   docker compose -f "${SERVICE_DIR}/docker-compose.yml" \
+    --project-name "${USER}-${SERVICE}" \
     ${ENV_FILE:+--env-file "${ENV_FILE}"} down
   exit 0
 fi
@@ -96,7 +97,9 @@ set +a
 # ── Start the stack ───────────────────────────────────────────────────────────
 echo ""
 echo "Starting ${SERVICE} stack..."
-docker compose -f "${SERVICE_DIR}/docker-compose.yml" --env-file "${ENV_FILE}" up -d --build
+docker compose -f "${SERVICE_DIR}/docker-compose.yml" \
+  --project-name "${USER}-${SERVICE}" \
+  --env-file "${ENV_FILE}" up -d --build
 
 HOST="${HOSTNAME:-localhost}"
 
