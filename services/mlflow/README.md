@@ -1,65 +1,81 @@
 # MLflow
 
-## What it does
+Experiment tracker, artifact store, and model registry for the CRISP-DM Modelling and Evaluation phases.
 
-MLflow is an open-source platform for managing the machine learning lifecycle. It provides:
+## CRISP-DM role
 
-- **Experiment tracking** -- log parameters, metrics, and tags for every run
-- **Artifact storage** -- save models, plots, and data files alongside each run
-- **Model Registry** -- version, stage (Staging/Production), and annotate trained models
-- **Model serving** -- optional REST endpoint for registered models
+| Phase | Contribution |
+|---|---|
+| Modelling | Every training run logs parameters, metrics, and artifacts automatically |
+| Evaluation | Compare runs side-by-side in the UI; pick the best model for promotion |
+| Deployment | Model Registry stores versioned models with lifecycle stages (Staging, Production) |
 
-## Architecture in this stack
+## Architecture
 
 ```
-mlflow-server  <-- tracking API + artifact proxy
-    |
-    +-- PostgreSQL  (run metadata: params, metrics, tags)
-    +-- MinIO       (artifact blobs: model files, images, reports)
+Client (notebook / Dagster)
+        │  HTTP
+        ▼
+  MLflow server  ──► PostgreSQL  (run metadata, parameters, metrics)
+        │
+        └──► MinIO (S3-compatible)  (artifacts: model files, HTML reports, plots)
 ```
 
-The MLflow server runs with `--serve-artifacts`, which means clients only talk to MLflow; they never need direct MinIO credentials. The server proxies artifact uploads and downloads through its own S3 connection.
+The `--serve-artifacts` flag means all artifact traffic proxies through the MLflow server. Clients never need direct MinIO credentials or network access to MinIO.
 
-PostgreSQL was chosen over the default SQLite file because it supports concurrent writers (multiple notebooks, Dagster jobs, and CI runs logging at the same time) and is easy to back up.
+## Services
 
-MinIO provides an S3-compatible API locally so the same `s3://` URI scheme works here as in cloud deployments. Switching to AWS S3 or GCS later only requires changing two environment variables.
-
-## Default ports
-
-| Service | Port | Variable |
+| Container | Port | Purpose |
 |---|---|---|
-| MLflow Tracking UI | 5000 | `MLFLOW_PORT` |
-| MinIO S3 API | 9000 | `MINIO_API_PORT` |
-| MinIO Console | 9001 | `MINIO_CONSOLE_PORT` |
-| PostgreSQL | 5432 | `POSTGRES_PORT` |
+| `mlflow` | 5000 | MLflow tracking server + artifact proxy |
+| `mlflow-db` | 5432 | PostgreSQL — run metadata |
+| `mlflow-minio` | 9000 | MinIO S3 API — artifact storage |
+| `mlflow-minio` | 9001 | MinIO web console |
 
-## Quick start
+## Quickstart
 
 ```bash
 ./scripts/start.sh mlflow
+# http://localhost:5000
 ```
 
-Python client:
+Connect from Python:
 
 ```python
 import mlflow
 mlflow.set_tracking_uri("http://localhost:5000")
+mlflow.set_experiment("my-experiment")
 
 with mlflow.start_run():
-    mlflow.log_param("lr", 1e-3)
-    mlflow.log_metric("accuracy", 0.93)
-    mlflow.log_artifact("confusion_matrix.png")
+    mlflow.log_param("lr", 0.001)
+    mlflow.log_metric("val_acc", 0.94)
+    mlflow.pytorch.log_model(model, "model", registered_model_name="my-model")
 ```
 
-## CRISP-DM role
+## Model Registry
 
-MLflow is central to the **Modelling** and **Evaluation** phases, and bridges into **Deployment**.
+After training, promote a model in the UI or from Python:
 
-| Phase | What MLflow provides |
-|---|---|
-| Modelling | Log hyperparameters and architecture choices per run so experiments are reproducible |
-| Evaluation | Compare runs side by side in the UI; identify the best configuration by metric |
-| Evaluation | Store evaluation artefacts (confusion matrix, ROC curve, feature importance plots) permanently |
-| Deployment | Register the selected model in the Model Registry; transition it through Staging to Production |
+```python
+client = mlflow.tracking.MlflowClient()
+client.transition_model_version_stage(
+    name="mnist1d-conv1d",
+    version=1,
+    stage="Production",
+)
+```
 
-Without experiment tracking, the Evaluation phase collapses to "the last run I remember." MLflow makes every run a first-class record so you can always go back and explain why a particular model was chosen.
+BentoML picks up the new Production model on next restart.
+
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `MLFLOW_PORT` | `5000` | MLflow server port |
+| `POSTGRES_PORT` | `5432` | PostgreSQL port |
+| `MINIO_PORT` | `9000` | MinIO S3 API port |
+| `MINIO_CONSOLE_PORT` | `9001` | MinIO web console port |
+| `POSTGRES_USER` | `mlflow` | Database user |
+| `POSTGRES_PASSWORD` | `mlflow_secret` | Database password |
+| `MINIO_ROOT_USER` | `minioadmin` | MinIO access key |
+| `MINIO_ROOT_PASSWORD` | `minioadmin_secret` | MinIO secret key |

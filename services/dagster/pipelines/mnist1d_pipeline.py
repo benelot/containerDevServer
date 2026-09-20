@@ -2,9 +2,9 @@
 Dagster asset pipeline — MNIST 1D CRISP-DM cycle.
 
 Asset graph:
-  raw_dataset  ──►  validated_dataset  ──►  trained_model
-                         │
-                         └──►  data_quality_report
+  raw_dataset  ──►  validated_dataset  ──►  data_quality_report
+                                                   │
+                                                   └──►  trained_model
 """
 import os
 import pickle
@@ -22,6 +22,8 @@ import mlflow
 import mlflow.pytorch
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset, DataQualityPreset
+from deepchecks.tabular import Dataset as DCDataset
+from deepchecks.tabular.suites import data_integrity, train_test_validation
 
 
 # ── Pandera schema ─────────────────────────────────────────────────────────────
@@ -66,7 +68,7 @@ def validated_dataset(context: dg.AssetExecutionContext, raw_dataset: dict) -> d
 
 @dg.asset(
     group_name="quality",
-    description="Evidently data-quality + drift report (train reference vs test current)",
+    description="Evidently data-quality + drift report and DeepChecks integrity suites, logged to MLflow",
 )
 def data_quality_report(context: dg.AssetExecutionContext, validated_dataset: dict) -> str:
     cols = [f"t{i}" for i in range(validated_dataset["X_train"].shape[1])]
@@ -75,25 +77,52 @@ def data_quality_report(context: dg.AssetExecutionContext, validated_dataset: di
     cur = pd.DataFrame(validated_dataset["X_test"], columns=cols)
     cur["label"] = validated_dataset["y_test"]
 
+    # ── Evidently ──────────────────────────────────────────────────────────────
     report = Report(metrics=[DataQualityPreset(), DataDriftPreset()])
     report.run(reference_data=ref, current_data=cur)
+    evidently_path = "/tmp/evidently_report.html"
+    report.save_html(evidently_path)
+    context.log.info(f"Evidently report saved → {evidently_path}")
 
-    out_path = "/tmp/evidently_report.html"
-    report.save_html(out_path)
-    context.log.info(f"Evidently report → {out_path}")
+    # ── DeepChecks ─────────────────────────────────────────────────────────────
+    train_ds = DCDataset(ref, label="label", cat_features=[])
+    test_ds  = DCDataset(cur, label="label", cat_features=[])
 
-    # Log to MLflow if reachable
+    integrity_result = data_integrity().run(train_ds)
+    tt_result        = train_test_validation().run(train_ds, test_ds)
+
+    dc_integrity_path = "/tmp/deepchecks_integrity.html"
+    dc_tt_path        = "/tmp/deepchecks_train_test.html"
+    integrity_result.save_as_html(dc_integrity_path)
+    tt_result.save_as_html(dc_tt_path)
+
+    n_int_passed = len(integrity_result.get_passed_checks())
+    n_int_failed = len(integrity_result.get_not_passed_checks())
+    n_tt_passed  = len(tt_result.get_passed_checks())
+    n_tt_failed  = len(tt_result.get_not_passed_checks())
+    context.log.info(
+        f"DeepChecks — integrity: {n_int_passed} passed / {n_int_failed} failed  "
+        f"train-test: {n_tt_passed} passed / {n_tt_failed} failed"
+    )
+
+    # ── Log all reports to MLflow ──────────────────────────────────────────────
     tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000")
     try:
         mlflow.set_tracking_uri(tracking_uri)
-        mlflow.set_experiment("mnist1d-dagster")
-        with mlflow.start_run(run_name="evidently-report"):
-            mlflow.log_artifact(out_path, "evidently")
-        context.log.info("Evidently report logged to MLflow")
+        mlflow.set_experiment("mnist1d-quality")
+        with mlflow.start_run(run_name="data-quality"):
+            mlflow.log_artifact(evidently_path,    "evidently")
+            mlflow.log_artifact(dc_integrity_path, "deepchecks")
+            mlflow.log_artifact(dc_tt_path,        "deepchecks")
+            mlflow.log_metric("integrity_passed", n_int_passed)
+            mlflow.log_metric("integrity_failed", n_int_failed)
+            mlflow.log_metric("traintest_passed",  n_tt_passed)
+            mlflow.log_metric("traintest_failed",  n_tt_failed)
+        context.log.info("Quality reports logged to MLflow")
     except Exception as e:
         context.log.warning(f"Could not log to MLflow: {e}")
 
-    return out_path
+    return evidently_path
 
 
 @dg.asset(
@@ -106,7 +135,6 @@ def trained_model(context: dg.AssetExecutionContext, validated_dataset: dict) ->
     X_test  = validated_dataset["X_test"]
     y_test  = validated_dataset["y_test"]
 
-    device = "cpu"
     mean, std = X_train.mean(), X_train.std()
     X_tr = torch.from_numpy(((X_train - mean) / std)[:, None, :])
     X_te = torch.from_numpy(((X_test  - mean) / std)[:, None, :])
@@ -128,7 +156,7 @@ def trained_model(context: dg.AssetExecutionContext, validated_dataset: dict) ->
             )
         def forward(self, x): return self.net(x)
 
-    model = Conv1DNet()
+    model     = Conv1DNet()
     optimiser = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
     criterion = nn.CrossEntropyLoss()
 
@@ -155,11 +183,11 @@ def trained_model(context: dg.AssetExecutionContext, validated_dataset: dict) ->
                 context.log.info(f"Epoch {epoch:2d}  val_acc={acc:.3%}")
 
         model_info = mlflow.pytorch.log_model(
-            model, "model", registered_model_name="mnist1d-dagster"
+            model, "model", registered_model_name="mnist1d-conv1d"
         )
         run_id = run.info.run_id
 
-    context.log.info(f"Model registered — run_id={run_id}")
+    context.log.info(f"Model registered as 'mnist1d-conv1d' — run_id={run_id}")
     return run_id
 
 

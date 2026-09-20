@@ -12,4 +12,4 @@ COPY service.py .
 
 EXPOSE 3000
 
-CMD ["bentoml", "serve", "service:svc", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["bentoml", "serve", "service:Mnist1DClassifier", "--host", "0.0.0.0", "--port", "3000"]

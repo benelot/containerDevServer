@@ -1,98 +1,73 @@
 # BentoML
 
-## What it does
-
-[BentoML](https://bentoml.com) is a model serving framework that turns a trained model into a production-ready REST API. It handles:
-
-- **HTTP endpoints** with automatic OpenAPI/Swagger documentation
-- **Input/output validation** with typed schemas
-- **Batching** -- multiple requests are grouped into a single model forward pass
-- **Health checks** -- a `/health` endpoint reports whether the model loaded successfully
-- **Containerisation** -- `bentoml build` + `bentoml containerize` packages the service into a self-contained Docker image for any deployment target
-
-## Architecture in this stack
-
-On startup the container connects to the MLflow Tracking server, downloads the model registered under `MLFLOW_MODEL_NAME` at stage `MLFLOW_MODEL_STAGE` (default: `Production`), and begins serving. Model weights are fetched from MinIO via the MLflow artifact proxy, so the serving container needs the same MLflow and MinIO environment variables as the training containers.
-
-If no Production model exists yet the service starts in **degraded mode**: it returns HTTP 503 on `/predict` and reports the reason in `/health`. This makes the startup order safe -- you can bring BentoML up alongside the rest of the stack and it self-heals once a model is promoted.
-
-```
-client
-  |
-  v
-bentoml container (port 3001)
-  |
-  +-- GET /health   -->  {"status": "ok", "model": "mnist1d-conv1d", "stage": "Production"}
-  +-- POST /predict -->  {"predictions": [3], "probabilities": [[0.01, ..., 0.92, ...]]}
-  |
-  +-- MLflow registry  (pulls model URI on startup)
-  +-- MinIO            (downloads model weights via MLflow artifact proxy)
-```
-
-Port 3001 is used to avoid conflict with the Dagster UI on 3000.
-
-## Default ports
-
-| Service | Port | Variable |
-|---|---|---|
-| BentoML REST API | 3001 | `BENTOML_PORT` |
-
-## Prerequisites
-
-The MLflow stack must be running and a model must be registered and promoted to Production before predictions work:
-
-```python
-import mlflow
-mlflow.set_tracking_uri("http://localhost:5000")
-
-# After training:
-result = mlflow.register_model("runs:/<run_id>/model", "mnist1d-conv1d")
-
-from mlflow.tracking import MlflowClient
-client = MlflowClient()
-client.transition_model_version_stage(
-    name="mnist1d-conv1d",
-    version=result.version,
-    stage="Production",
-)
-```
-
-The CRISP-DM notebook (`notebooks/mnist1d_crisp_dm.ipynb`) does this automatically in the Deployment section.
-
-## Quick start
-
-```bash
-# Start MLflow first and register a Production model
-./scripts/start.sh mlflow
-
-# Then start BentoML
-./scripts/start.sh bentoml
-
-# Check health
-curl http://localhost:3001/health
-
-# Run a prediction (40-value MNIST 1D sequence)
-curl -X POST http://localhost:3001/predict \
-  -H "Content-Type: application/json" \
-  -d '[[0.1, -0.2, 0.3, ..., 0.0]]'
-
-# Swagger UI (interactive API docs)
-open http://localhost:3001
-```
-
-## Swapping the model
-
-Change `MLFLOW_MODEL_NAME` and `MLFLOW_MODEL_STAGE` in `.env` and restart the container. No code change is needed -- the service reads those values at startup.
+Model serving layer for the CRISP-DM Deployment phase.
 
 ## CRISP-DM role
 
-BentoML is the **Deployment** phase made concrete. It is the point where the model transitions from a registry entry to a callable service.
-
-| Phase | What BentoML provides |
+| Phase | Contribution |
 |---|---|
-| Deployment | Serve the Production model as a REST API that any downstream system can call |
-| Deployment | Swagger UI lets non-engineers test the model directly without writing code |
-| Evaluation | The `/health` endpoint makes it observable -- monitoring tools can confirm the right model version is live |
-| Deployment | Model swaps are zero-downtime: promote a new version in MLflow and restart the container |
+| Deployment | Expose the registered MLflow model as a typed REST API with automatic documentation |
 
-Evidently monitors the requests flowing through this endpoint. When it detects drift in the incoming sequences, it triggers the re-labeling and retraining loop that produces a new Production model -- which BentoML then serves automatically on the next restart.
+BentoML bridges the Model Registry and external consumers. A model trained in a notebook or by the Dagster pipeline is registered in MLflow, promoted to Production, and immediately available via the BentoML REST endpoint — with no code changes required.
+
+## How it works
+
+On startup the service connects to MLflow and loads the model registered under `MLFLOW_MODEL_NAME` at stage `MLFLOW_MODEL_STAGE`. If no model at that stage exists yet, the service starts in **degraded mode**: `/predict` returns HTTP 503 with a clear explanation, and `/health` reports the reason. This makes startup order safe — BentoML can launch alongside the rest of the stack and become fully operational once a model is promoted.
+
+```
+MLflow Model Registry
+        │  load on startup
+        ▼
+  BentoML service  ──► /predict   (POST, numpy array → predictions + probabilities)
+                   ──► /health    (GET, model load status)
+                   ──► /docs      (Swagger UI)
+```
+
+## Quickstart
+
+```bash
+./scripts/start.sh bentoml
+# http://localhost:3001        — Swagger UI
+# http://localhost:3001/health — model load status
+```
+
+Classify a batch of MNIST 1D sequences:
+
+```bash
+curl -X POST http://localhost:3001/predict \
+  -H "Content-Type: application/json" \
+  -d '[[0.1, -0.2, 0.3, 0.5, -0.1, 0.4, 0.2, -0.3, 0.6, 0.1,
+        0.0, -0.1, 0.2, 0.4, -0.2, 0.3, 0.1, 0.5, -0.4, 0.2,
+        0.3, -0.1, 0.4, 0.2, -0.3, 0.5, 0.1, 0.0, 0.2, -0.1,
+        0.4, 0.3, -0.2, 0.1, 0.5, -0.3, 0.2, 0.4, -0.1, 0.3]]'
+# {"predictions": [3], "probabilities": [[0.01, 0.02, 0.03, 0.92, ...]]}
+```
+
+## API endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/predict` | POST | Classify one or more sequences. Input: float32 array of shape `(N, 40)`. Output: predicted class indices and class probabilities. |
+| `/health` | GET | Returns model load status. Use for Docker healthchecks and uptime probes. |
+| `/docs` | GET | Interactive Swagger UI. |
+
+## Serving a different model
+
+Change `MLFLOW_MODEL_NAME` or `MLFLOW_MODEL_STAGE` in `.env` and restart the container:
+
+```bash
+# services/bentoml/.env
+MLFLOW_MODEL_NAME=my-other-model
+MLFLOW_MODEL_STAGE=Staging
+```
+
+No code changes required.
+
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `BENTOML_PORT` | `3001` | BentoML serving port |
+| `MLFLOW_TRACKING_URI` | `http://host.docker.internal:5000` | MLflow server visible from inside the container |
+| `MLFLOW_MODEL_NAME` | `mnist1d-conv1d` | Registered model name to load |
+| `MLFLOW_MODEL_STAGE` | `Production` | Model Registry stage to load |

@@ -18,13 +18,12 @@ cells.append(md(
     "\n"
     "This notebook validates the MNIST 1D dataset and trained model against the full quality stack:\n"
     "\n"
-    "| Tool | Purpose | Status |\n"
+    "| Tool | Purpose | Role |\n"
     "|---|---|---|\n"
-    "| **Pandera** | Schema validation — feature ranges, label domain, null checks | Recommended for ML |\n"
-    "| **DeepChecks** | Dataset integrity + train/test distribution suites | ML-specific checks |\n"
-    "| **Evidently** | Data drift + quality HTML reports → logged to MLflow/MinIO | Monitoring |\n"
-    "| **Pointblank** | Interactive stakeholder-facing data quality reports | New (2024) |\n"
-    "| Great Expectations | Enterprise governance, Data Docs | Use if team needs GX Cloud |\n"
+    "| **Pandera** | Schema validation — feature ranges, label domain, null checks | Data Preparation |\n"
+    "| **DeepChecks** | Dataset integrity + train/test distribution suites | Evaluation |\n"
+    "| **Evidently** | Data drift + quality HTML reports → logged to MLflow/MinIO | Evaluation + Deployment |\n"
+    "| **Pointblank** | Interactive stakeholder-facing data quality reports | Evaluation |\n"
     "\n"
     "> **Run this notebook after** `mnist1d_crisp_dm.ipynb` so `best_model.pt` and the dataset exist.\n"
 ))
@@ -73,9 +72,8 @@ cells.append(code(
 cells.append(md(
     "## § 1 Pandera — Schema Validation\n"
     "\n"
-    "Pandera enforces contracts on DataFrames at code time (or at runtime as a decorator). "
-    "It is the recommended replacement for Great Expectations in Python ML pipelines — simpler API, "
-    "no YAML, native pandas/Polars/Pyspark support.\n"
+    "Pandera enforces contracts on DataFrames at code time or at runtime as a decorator. "
+    "It has a concise Python API with no YAML, and native pandas, Polars, and PySpark support.\n"
 ))
 
 cells.append(code(
@@ -230,11 +228,11 @@ cells.append(code(
     "EVIDENTLY_SERVICE_URL = os.environ.get('EVIDENTLY_SERVICE_URL', 'http://localhost:8001')\n"
     "\n"
     "try:\n"
-    "    from evidently.ui.workspace.cloud import CloudWorkspace\n"
-    "    ws = CloudWorkspace(token='', url=EVIDENTLY_SERVICE_URL)  # no auth for self-hosted\n"
+    "    from evidently.ui.workspace import Workspace\n"
+    "    ws = Workspace(url=EVIDENTLY_SERVICE_URL)\n"
     "    project = ws.create_project('MNIST 1D monitoring')\n"
     "    project.save()\n"
-    "    ws.add_report(project.id, report)\n"
+    "    ws.add_run(project.id, report)\n"
     "    print(f'Snapshot pushed to Evidently service at {EVIDENTLY_SERVICE_URL}')\n"
     "except Exception as e:\n"
     "    print(f'Evidently service not reachable ({e!r}) — report is still in MLflow.')\n"
@@ -242,15 +240,11 @@ cells.append(code(
 
 # ── § 4 Pointblank ────────────────────────────────────────────────────────────
 cells.append(md(
-    "## § 4 Pointblank — Interactive Data Quality Reports (New, 2024)\n"
+    "## § 4 Pointblank — Interactive Data Quality Reports\n"
     "\n"
     "[Pointblank](https://github.com/posit-dev/pointblank) is a 2024 release from Posit "
-    "(makers of RStudio/Tidyverse). It produces beautiful, interactive validation reports for "
-    "pandas and Polars DataFrames. Designed for stakeholder-facing quality reviews.\n"
-    "\n"
-    "Compared to Great Expectations: simpler API, no YAML, better visualisation, "
-    "no server required. Best for batch reports. GX is better if you need enterprise "
-    "data governance, Data Docs, and integration with Airflow/dbt at scale.\n"
+    "(makers of RStudio/Tidyverse). It produces interactive, self-contained HTML validation "
+    "reports for pandas and Polars DataFrames, designed for stakeholder-facing quality reviews.\n"
 ))
 
 cells.append(code(
@@ -279,41 +273,6 @@ cells.append(code(
     "with mlflow.start_run(run_id=QUALITY_RUN_ID):\n"
     "    mlflow.log_artifact(pb_html)\n"
     "print(f'Pointblank report logged to MLflow run {QUALITY_RUN_ID}')\n"
-))
-
-# ── § 5 Great Expectations (brief) ────────────────────────────────────────────
-cells.append(md(
-    "## § 5 Great Expectations v1 (reference)\n"
-    "\n"
-    "GX is still the right choice when you need:\n"
-    "- Team-shared Data Docs hosted as static sites\n"
-    "- Integration with dbt or Airflow checkpoints at enterprise scale\n"
-    "- GX Cloud for centralised governance\n"
-    "\n"
-    "For this stack (DataFrame-centric ML), Pandera covers the same validation "
-    "with far less boilerplate. The snippet below shows the GX v1 Python Fluent API "
-    "(v1.0 dropped most of the YAML in August 2024).\n"
-))
-
-cells.append(code(
-    "# GX v1 Fluent API — install with: pip install great-expectations\n"
-    "# (Not run by default; uncomment to use)\n"
-    "\n"
-    "# import great_expectations as gx\n"
-    "#\n"
-    "# ctx = gx.get_context(mode='ephemeral')\n"
-    "# ds  = ctx.data_sources.add_pandas('mnist1d')\n"
-    "# da  = ds.add_dataframe_asset('train')\n"
-    "# batch = da.add_batch_definition_whole_dataframe('all').get_batch(batch_parameters={'dataframe': df_train})\n"
-    "#\n"
-    "# suite = ctx.suites.add(gx.ExpectationSuite(name='mnist1d_suite'))\n"
-    "# suite.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column='label'))\n"
-    "# suite.add_expectation(gx.expectations.ExpectColumnValuesToBeBetween(\n"
-    "#     column='t0', min_value=-8.0, max_value=8.0))\n"
-    "#\n"
-    "# results = batch.validate(suite)\n"
-    "# print(results)\n"
-    "print('GX snippet is commented out. Install great-expectations and uncomment to run.')\n"
 ))
 
 # ── Summary ────────────────────────────────────────────────────────────────────

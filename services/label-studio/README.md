@@ -1,61 +1,45 @@
 # Label Studio
 
-## What it does
-
-[Label Studio](https://labelstud.io) is an open-source data annotation tool. It provides a web UI for humans to label images, text, audio, time series, and structured data. Output is standard JSON that can feed directly into a training pipeline.
-
-Key capabilities relevant to this stack:
-
-- **Multi-modal annotation** -- images, sequences, text classification, named entity recognition, bounding boxes, polygons
-- **Pre-annotation** -- run a model first and have annotators correct its predictions (active learning loop)
-- **Agreement metrics** -- when multiple annotators label the same item, measure inter-annotator agreement
-- **Export formats** -- JSON, CSV, COCO, YOLO, Pascal VOC, and more
-
-## Architecture in this stack
-
-Label Studio stores project configuration and annotation data in PostgreSQL. This is preferred over the default SQLite because:
-
-- The annotation database is shared and survives container restarts cleanly
-- PostgreSQL supports larger concurrent annotation teams
-- Backup is straightforward with standard `pg_dump`
-
-A dedicated PostgreSQL instance runs on port 5433 to avoid conflict with the MLflow PostgreSQL on 5432.
-
-## Default ports
-
-| Service | Port | Variable |
-|---|---|---|
-| Label Studio UI | 8080 | `LABEL_STUDIO_PORT` |
-| PostgreSQL | 5433 | `POSTGRES_PORT` |
-
-Default login: set in `.env` (default `admin@example.com` / `changeme`).
-
-## Quick start
-
-```bash
-./scripts/start.sh label-studio
-# Open http://localhost:8080 and log in
-# Create a project, upload data, and start annotating
-```
-
-After annotating, export and version the labeled dataset with DVC:
-
-```bash
-dvc add data/labeled/annotations.json
-git add data/labeled/annotations.json.dvc
-git commit -m "add v1 labeled dataset"
-dvc push
-```
+Web-based data annotation tool for the CRISP-DM Data Understanding and Deployment phases.
 
 ## CRISP-DM role
 
-Label Studio is primarily a **Data Understanding** and **Data Preparation** tool.
-
-| Phase | What Label Studio provides |
+| Phase | Contribution |
 |---|---|
-| Business Understanding | Define what correct labels look like; forces early agreement on the prediction target |
-| Data Understanding | Manual inspection of raw samples surfaces quality issues (duplicates, corrupted files, ambiguous cases) before training |
-| Data Preparation | Produce clean, consistent labels that form the ground truth for supervised learning |
-| Evaluation | Re-annotate a held-out test set to verify the model's errors are real errors, not labeling noise |
+| Data Understanding | Manually review and annotate a representative sample before any modelling |
+| Deployment | Re-label samples flagged for drift by Evidently; feed them back into the training pipeline |
 
-In a real project the labeling process is not a one-time step. As the model improves and finds hard cases, those cases cycle back to Label Studio for re-labeling. Label Studio is the entry point of that active learning loop.
+The second use is the feedback loop that keeps a deployed model accurate over time: Evidently detects distribution shift in production data → new samples are exported to Label Studio for re-labeling → the corrected annotations are versioned with DVC → the Dagster pipeline retrains the model → BentoML loads the updated Production model.
+
+## Quickstart
+
+```bash
+./scripts/start.sh label-studio
+# http://localhost:8080
+# Login: admin@example.com / changeme  (set LABEL_STUDIO_PASSWORD in .env)
+```
+
+## Typical workflow
+
+1. Create a project in the Label Studio UI and configure the labeling interface.
+2. Import your dataset (CSV, JSON, or image files).
+3. Annotate samples in the browser.
+4. Export annotations as JSON or CSV.
+5. Version the export with DVC: `dvc add annotations/export.json && dvc push`.
+6. Reference the versioned annotation file in the Dagster pipeline.
+
+## Services
+
+| Container | Port | Purpose |
+|---|---|---|
+| `label-studio` | 8080 | Label Studio web UI |
+| `label-studio-db` | 5433 | PostgreSQL — project and annotation metadata |
+
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `LABEL_STUDIO_PORT` | `8080` | Web UI port |
+| `POSTGRES_PORT` | `5433` | PostgreSQL port (offset from MLflow's 5432) |
+| `LABEL_STUDIO_USERNAME` | `admin@example.com` | Initial admin login |
+| `LABEL_STUDIO_PASSWORD` | `changeme` | Initial admin password — change before production use |
