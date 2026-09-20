@@ -267,6 +267,28 @@ Each service reads from `services/<name>/.env`. The start script copies `.env.ex
 
 ---
 
+## Multi-user setup
+
+Each user on a shared machine runs their own fully isolated stack — no administrator involvement needed. Clone the repo, run two commands, and start the labs.
+
+```bash
+# 1. Assign your personal port set (run once; safe to re-run)
+bash scripts/generate-ports.sh
+
+# 2. Start whatever service you need
+./scripts/start.sh mlflow
+```
+
+That is the entire onboarding. The two isolation mechanisms work automatically:
+
+**Port isolation** — `generate-ports.sh` hashes your `USER@HOSTNAME` into a slot (0–1999) and maps 17 service ports to a unique block starting at `20000 + slot × 20`. No two slots share a port. The assignments are written to each service's `.env` file and reloaded on every `start.sh` call.
+
+**Container isolation** — `start.sh` passes `--project-name "${USER}-${SERVICE}"` to every Docker Compose command. All containers, networks, and volumes are prefixed with your username. Two users running `./scripts/start.sh mlflow` produce completely separate stacks: `alice-mlflow-mlflow-1` and `bob-mlflow-mlflow-1`, each with their own PostgreSQL data and MinIO buckets.
+
+The interactive labs at port `LABS_PORT` (from your generated `.env`) walk through the full CRISP-DM workflow and automatically show the correct port numbers for your personal setup.
+
+---
+
 ## Ansible role variables
 
 | Variable | Role | Default | Description |
