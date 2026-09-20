@@ -19,8 +19,14 @@ services/          One directory per stack; each is independent
   bentoml/         BentoML REST serving (loads Production model from MLflow)
     service.py     BentoML 1.x @bentoml.service class; loads from MLflow on startup
   monitoring/      Prometheus + Grafana + node_exporter + cAdvisor + blackbox probes
+  labs/            Hugo + FastAPI interactive labs; port 3003
+    hugo.toml            Hugo site config (relearn theme, taskList extension)
+    content/             8 labs (00-introduction through 08-monitoring)
+    layouts/shortcodes/  {{< port >}} and {{< svcurl >}} inject live port values
+    scripts/generate_ports_data.py  Reads env vars → data/ports.yaml at container start
 
 scripts/
+  generate-ports.sh    Assign deterministic non-colliding port slots per user@host
   start.sh         Start/stop any stack; --random assigns unused ports
   backup.sh        Dump PostgreSQL DBs, mirror MinIO buckets, tar Docker volumes
   generate_notebooks.py             Regenerate notebooks/mnist1d_crisp_dm.ipynb
@@ -42,7 +48,7 @@ notebooks/
 - Default ports are offset per service so stacks can run simultaneously:
   MLflow 5000/5432/9000/9001, DVC 9010/9011, Label Studio 8080/5433, Jupyter 8888,
   Dagster 3000/5434, Evidently 8001, BentoML 3001,
-  Monitoring: Grafana 3002, Prometheus 9090, cAdvisor 8082.
+  Monitoring: Grafana 3002, Prometheus 9090, cAdvisor 8082, Labs 3003.
 - The `start.sh` script copies `.env.example` to `.env` on first run.
 - Notebooks are generated files — edit the generator scripts, not the `.ipynb` files.
 - Adding a new service: create `services/<name>/docker-compose.yml` and `.env.example`,

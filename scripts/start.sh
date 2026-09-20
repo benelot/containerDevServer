@@ -204,6 +204,14 @@ case "${SERVICE}" in
     echo "  Requires a Production model in MLflow (run the CRISP-DM notebook first)."
     echo "  Credentials: ${ENV_FILE}"
     ;;
+  labs)
+    echo ""
+    echo "  Data Science Labs (Hugo + FastAPI) http://${HOST}:${LABS_PORT:-3003}"
+    echo ""
+    echo "  Lab content is rebuilt from Hugo source on every container start."
+    echo "  Port values are injected from the environment — run generate-ports.sh first."
+    echo "  Credentials: ${ENV_FILE}"
+    ;;
   *)
     echo "  Stack started. Check 'docker compose ps' for port details."
     ;;

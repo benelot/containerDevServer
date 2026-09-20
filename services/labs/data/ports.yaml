@@ -1,0 +1,17 @@
+mlflow_port: 5000
+mlflow_postgres_port: 5432
+mlflow_minio_port: 9000
+mlflow_minio_console_port: 9001
+dvc_minio_port: 9010
+dvc_minio_console_port: 9011
+label_studio_port: 8080
+label_studio_postgres_port: 5433
+jupyter_port: 8888
+dagster_port: 3000
+dagster_postgres_port: 5434
+evidently_port: 8001
+bentoml_port: 3001
+grafana_port: 3002
+prometheus_port: 9090
+cadvisor_port: 8082
+labs_port: 3003
