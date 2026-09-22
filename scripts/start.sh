@@ -225,13 +225,17 @@ case "${SERVICE}" in
     ;;
   vscode)
     echo ""
-    echo "  VS Code (browser)     http://${HOST}:${VSCODE_PORT:-4000}"
+    echo "  ── Option 1: Browser (this container) ──────────────────────"
+    echo "  Open in browser       http://${HOST}:${VSCODE_PORT:-4000}"
     echo "  Password              ${VSCODE_PASSWORD:-changeme}"
+    echo "  Workspace             ${VSCODE_WORKSPACE:-/home/coder/workspace}"
     echo ""
-    echo "  VS Code Desktop (Remote SSH alternative):"
-    echo "    Install the 'Remote - SSH' extension, then connect to this host directly."
-    echo "    The container is not needed for desktop remote SSH — connect to the host."
+    echo "  ── Option 2: VS Code Desktop via Remote SSH (no container needed) ──"
+    echo "  1. Install the 'Remote - SSH' extension in VS Code Desktop."
+    echo "  2. Connect to: ${USER}@${HOST}"
+    echo "  3. VS Code installs its server component on the host automatically."
     echo ""
+    echo "  See services/vscode/README.md for a comparison of both options."
     echo "  Credentials: ${ENV_FILE}"
     ;;
   *)
