@@ -20,6 +20,7 @@ PORTS = {
     "prometheus_port":          os.environ.get("PROMETHEUS_PORT",            "9090"),
     "cadvisor_port":            os.environ.get("CADVISOR_PORT",              "8082"),
     "labs_port":                os.environ.get("LABS_PORT",                  "3003"),
+    "vscode_port":              os.environ.get("VSCODE_PORT",                "4000"),
 }
 
 out = "\n".join(f"{k}: {v}" for k, v in PORTS.items()) + "\n"

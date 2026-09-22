@@ -223,6 +223,17 @@ case "${SERVICE}" in
     echo "  Port values are injected from the environment — run generate-ports.sh first."
     echo "  Credentials: ${ENV_FILE}"
     ;;
+  vscode)
+    echo ""
+    echo "  VS Code (browser)     http://${HOST}:${VSCODE_PORT:-4000}"
+    echo "  Password              ${VSCODE_PASSWORD:-changeme}"
+    echo ""
+    echo "  VS Code Desktop (Remote SSH alternative):"
+    echo "    Install the 'Remote - SSH' extension, then connect to this host directly."
+    echo "    The container is not needed for desktop remote SSH — connect to the host."
+    echo ""
+    echo "  Credentials: ${ENV_FILE}"
+    ;;
   *)
     echo "  Stack started. Check 'docker compose ps' for port details."
     ;;

@@ -26,6 +26,7 @@ services/          One directory per stack; each is independent
     content/             8 labs (00-introduction through 08-monitoring)
     layouts/shortcodes/  {{< port >}} and {{< svcurl >}} inject live port values
     scripts/generate_ports_data.py  Reads env vars → data/ports.yaml at container start
+  vscode/          code-server (VS Code in the browser + Remote SSH target); port 4000
 
 scripts/
   generate-ports.sh    Assign deterministic non-colliding port slots per user@host
@@ -50,7 +51,7 @@ notebooks/
 - Default ports are offset per service so stacks can run simultaneously:
   MLflow 5000/5432/9000/9001, DVC 9010/9011, Label Studio 8080/5433, Jupyter 8888,
   Dagster 3000/5434, Evidently 8001, BentoML 3001,
-  Monitoring: Grafana 3002, Prometheus 9090, cAdvisor 8082, Labs 3003.
+  Monitoring: Grafana 3002, Prometheus 9090, cAdvisor 8082, Labs 3003, VS Code 4000.
 - The `start.sh` script copies `.env.example` to `.env` on first run.
 - Notebooks are generated files — edit the generator scripts, not the `.ipynb` files.
 - Adding a new service: create `services/<name>/docker-compose.yml` and `.env.example`,

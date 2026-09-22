@@ -23,6 +23,9 @@
 #     +7  LABEL_STUDIO_POSTGRES_PORT +17 LABS_PORT
 #     +8  JUPYTER_PORT
 #     +9  (reserved)
+#    +17  LABS_PORT
+#    +18  VSCODE_PORT
+#    +19  (reserved)
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,9 +55,9 @@ if [[ "${TEST_MODE}" == "true" ]]; then
     # Simulate different user@host hashes by using index directly as slot
     slot=$(( (i * 7 + 3) % 2000 ))          # spread across slot space
     base=$(( 20000 + slot * 20 ))
-    echo -n "  Deployment $i  slot=$slot  ports $base-$(( base + 17 ))  "
+    echo -n "  Deployment $i  slot=$slot  ports $base-$(( base + 18 ))  "
     collision=false
-    for offset in $(seq 0 17); do
+    for offset in $(seq 0 18); do
       p=$(( base + offset ))
       if [[ -n "${seen[$p]+_}" ]]; then
         echo "COLLISION on port $p with deployment ${seen[$p]}"
@@ -100,6 +103,7 @@ declare -A PORTS=(
   [PROMETHEUS_PORT]=$(( BASE + 15 ))
   [CADVISOR_PORT]=$(( BASE + 16 ))
   [LABS_PORT]=$(( BASE + 17 ))
+  [VSCODE_PORT]=$(( BASE + 18 ))
 )
 
 if [[ "${SHOW}" == "true" ]]; then
@@ -123,6 +127,7 @@ declare -A SVC_VARS=(
   [bentoml]="BENTOML_PORT"
   [monitoring]="GRAFANA_PORT PROMETHEUS_PORT CADVISOR_PORT"
   [labs]="LABS_PORT"
+  [vscode]="VSCODE_PORT"
 )
 
 echo "==> Generating ports for ${IDENTITY}  (slot ${SLOT}, base ${BASE})"

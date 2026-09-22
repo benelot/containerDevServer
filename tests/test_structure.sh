@@ -26,7 +26,7 @@ check_file "ansible/roles/proxy/defaults/main.yml"
 check_file "ansible/roles/proxy/handlers/main.yml"
 check_file "ansible/roles/proxy/templates/docker_proxy.conf.j2"
 
-for svc in mlflow dvc label-studio jupyterlab dagster evidently bentoml monitoring; do
+for svc in mlflow dvc label-studio jupyterlab dagster evidently bentoml monitoring vscode; do
     check_file "services/${svc}/docker-compose.yml"
     check_file "services/${svc}/.env.example"
 done

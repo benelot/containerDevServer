@@ -22,3 +22,4 @@ services:
       GRAFANA_PORT:                "${GRAFANA_PORT:-3002}"
       PROMETHEUS_PORT:             "${PROMETHEUS_PORT:-9090}"
       CADVISOR_PORT:               "${CADVISOR_PORT:-8082}"
+      VSCODE_PORT:                 "${VSCODE_PORT:-4000}"
