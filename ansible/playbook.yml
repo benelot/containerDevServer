@@ -1,0 +1,10 @@
+---
+- name: Set up Docker and data science tooling for container dev server
+  hosts: all
+  become: true
+
+  roles:
+    - proxy         # system-wide HTTP proxy (no-op if http_proxy is unset)
+    - docker        # install Docker CE + Compose plugin
+    - docker_config # configure daemon.json, docker group membership
+    - mamba         # install Miniforge3 + mamba for all docker_users

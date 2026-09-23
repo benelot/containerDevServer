@@ -1,0 +1,182 @@
+{
+  "title": "Container Dev Server",
+  "uid": "cds-overview",
+  "timezone": "browser",
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+
+    { "id": 1, "type": "row", "title": "Service Health",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 } },
+
+    { "id": 2, "type": "stat", "title": "MLflow",
+      "gridPos": { "x": 0, "y": 1, "w": 3, "h": 4 },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": {
+        "mappings": [{"type":"value","options":{"0":{"text":"DOWN","color":"red"},"1":{"text":"UP","color":"green"}}}],
+        "thresholds": { "mode": "absolute", "steps": [{"color":"red","value":0},{"color":"green","value":1}] }
+      }},
+      "targets": [{ "expr": "probe_success{instance=\"http://host.docker.internal:5000/health\"}", "datasource": "Prometheus" }]
+    },
+
+    { "id": 3, "type": "stat", "title": "MinIO (MLflow)",
+      "gridPos": { "x": 3, "y": 1, "w": 3, "h": 4 },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": {
+        "mappings": [{"type":"value","options":{"0":{"text":"DOWN","color":"red"},"1":{"text":"UP","color":"green"}}}],
+        "thresholds": { "mode": "absolute", "steps": [{"color":"red","value":0},{"color":"green","value":1}] }
+      }},
+      "targets": [{ "expr": "probe_success{instance=\"http://host.docker.internal:9000/minio/health/live\"}", "datasource": "Prometheus" }]
+    },
+
+    { "id": 4, "type": "stat", "title": "DVC / MinIO",
+      "gridPos": { "x": 6, "y": 1, "w": 3, "h": 4 },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": {
+        "mappings": [{"type":"value","options":{"0":{"text":"DOWN","color":"red"},"1":{"text":"UP","color":"green"}}}],
+        "thresholds": { "mode": "absolute", "steps": [{"color":"red","value":0},{"color":"green","value":1}] }
+      }},
+      "targets": [{ "expr": "probe_success{instance=\"http://host.docker.internal:9010/minio/health/live\"}", "datasource": "Prometheus" }]
+    },
+
+    { "id": 5, "type": "stat", "title": "Label Studio",
+      "gridPos": { "x": 9, "y": 1, "w": 3, "h": 4 },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": {
+        "mappings": [{"type":"value","options":{"0":{"text":"DOWN","color":"red"},"1":{"text":"UP","color":"green"}}}],
+        "thresholds": { "mode": "absolute", "steps": [{"color":"red","value":0},{"color":"green","value":1}] }
+      }},
+      "targets": [{ "expr": "probe_success{instance=\"http://host.docker.internal:8080\"}", "datasource": "Prometheus" }]
+    },
+
+    { "id": 6, "type": "stat", "title": "JupyterLab",
+      "gridPos": { "x": 12, "y": 1, "w": 3, "h": 4 },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": {
+        "mappings": [{"type":"value","options":{"0":{"text":"DOWN","color":"red"},"1":{"text":"UP","color":"green"}}}],
+        "thresholds": { "mode": "absolute", "steps": [{"color":"red","value":0},{"color":"green","value":1}] }
+      }},
+      "targets": [{ "expr": "probe_success{instance=\"http://host.docker.internal:8888\"}", "datasource": "Prometheus" }]
+    },
+
+    { "id": 7, "type": "stat", "title": "Dagster",
+      "gridPos": { "x": 15, "y": 1, "w": 3, "h": 4 },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": {
+        "mappings": [{"type":"value","options":{"0":{"text":"DOWN","color":"red"},"1":{"text":"UP","color":"green"}}}],
+        "thresholds": { "mode": "absolute", "steps": [{"color":"red","value":0},{"color":"green","value":1}] }
+      }},
+      "targets": [{ "expr": "probe_success{instance=\"http://host.docker.internal:3000/server_info\"}", "datasource": "Prometheus" }]
+    },
+
+    { "id": 8, "type": "stat", "title": "Evidently",
+      "gridPos": { "x": 18, "y": 1, "w": 3, "h": 4 },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": {
+        "mappings": [{"type":"value","options":{"0":{"text":"DOWN","color":"red"},"1":{"text":"UP","color":"green"}}}],
+        "thresholds": { "mode": "absolute", "steps": [{"color":"red","value":0},{"color":"green","value":1}] }
+      }},
+      "targets": [{ "expr": "probe_success{instance=\"http://host.docker.internal:8001/health\"}", "datasource": "Prometheus" }]
+    },
+
+    { "id": 9, "type": "stat", "title": "BentoML",
+      "gridPos": { "x": 21, "y": 1, "w": 3, "h": 4 },
+      "options": { "colorMode": "background", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": {
+        "mappings": [{"type":"value","options":{"0":{"text":"DOWN","color":"red"},"1":{"text":"UP","color":"green"}}}],
+        "thresholds": { "mode": "absolute", "steps": [{"color":"red","value":0},{"color":"green","value":1}] }
+      }},
+      "targets": [{ "expr": "probe_success{instance=\"http://host.docker.internal:3001/health\"}", "datasource": "Prometheus" }]
+    },
+
+    { "id": 10, "type": "row", "title": "Response Time",
+      "gridPos": { "x": 0, "y": 5, "w": 24, "h": 1 } },
+
+    { "id": 11, "type": "timeseries", "title": "Service Response Time (ms)",
+      "gridPos": { "x": 0, "y": 6, "w": 24, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "targets": [
+        { "expr": "probe_duration_seconds{job=\"service_health\"} * 1000",
+          "legendFormat": "{{instance}}", "datasource": "Prometheus" }
+      ]
+    },
+
+    { "id": 12, "type": "row", "title": "Host Hardware",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 1 } },
+
+    { "id": 13, "type": "timeseries", "title": "CPU Usage %",
+      "gridPos": { "x": 0, "y": 13, "w": 8, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } },
+      "targets": [
+        { "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[1m])) * 100)",
+          "legendFormat": "CPU", "datasource": "Prometheus" }
+      ]
+    },
+
+    { "id": 14, "type": "timeseries", "title": "RAM Usage %",
+      "gridPos": { "x": 8, "y": 13, "w": 8, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } },
+      "targets": [
+        { "expr": "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100",
+          "legendFormat": "RAM", "datasource": "Prometheus" }
+      ]
+    },
+
+    { "id": 15, "type": "timeseries", "title": "Disk I/O (bytes/s)",
+      "gridPos": { "x": 16, "y": 13, "w": 8, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "Bps" } },
+      "targets": [
+        { "expr": "rate(node_disk_read_bytes_total[1m])",
+          "legendFormat": "read {{device}}", "datasource": "Prometheus" },
+        { "expr": "rate(node_disk_written_bytes_total[1m])",
+          "legendFormat": "write {{device}}", "datasource": "Prometheus" }
+      ]
+    },
+
+    { "id": 16, "type": "row", "title": "Containers",
+      "gridPos": { "x": 0, "y": 19, "w": 24, "h": 1 } },
+
+    { "id": 17, "type": "timeseries", "title": "Container CPU %",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 7 },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "targets": [
+        { "expr": "rate(container_cpu_usage_seconds_total{image!=\"\"}[1m]) * 100",
+          "legendFormat": "{{name}}", "datasource": "Prometheus" }
+      ]
+    },
+
+    { "id": 18, "type": "timeseries", "title": "Container RAM",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 7 },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [
+        { "expr": "container_memory_working_set_bytes{image!=\"\"}",
+          "legendFormat": "{{name}}", "datasource": "Prometheus" }
+      ]
+    },
+
+    { "id": 19, "type": "row", "title": "GPU (requires --profile gpu)",
+      "gridPos": { "x": 0, "y": 27, "w": 24, "h": 1 },
+      "collapsed": true },
+
+    { "id": 20, "type": "timeseries", "title": "GPU Utilisation %",
+      "gridPos": { "x": 0, "y": 28, "w": 12, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } },
+      "targets": [
+        { "expr": "DCGM_FI_DEV_GPU_UTIL",
+          "legendFormat": "GPU {{gpu}}", "datasource": "Prometheus" }
+      ]
+    },
+
+    { "id": 21, "type": "timeseries", "title": "GPU Memory Used",
+      "gridPos": { "x": 12, "y": 28, "w": 12, "h": 6 },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [
+        { "expr": "DCGM_FI_DEV_FB_USED * 1048576",
+          "legendFormat": "GPU {{gpu}} used", "datasource": "Prometheus" },
+        { "expr": "DCGM_FI_DEV_FB_FREE * 1048576",
+          "legendFormat": "GPU {{gpu}} free", "datasource": "Prometheus" }
+      ]
+    }
+  ]
+}

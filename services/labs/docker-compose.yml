@@ -1,0 +1,25 @@
+services:
+  labs:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${LABS_PORT:-3003}:3003"
+    environment:
+      LABS_PORT:                   "${LABS_PORT:-3003}"
+      MLFLOW_PORT:                 "${MLFLOW_PORT:-5000}"
+      MLFLOW_POSTGRES_PORT:        "${MLFLOW_POSTGRES_PORT:-5432}"
+      MLFLOW_MINIO_PORT:           "${MLFLOW_MINIO_PORT:-9000}"
+      MLFLOW_MINIO_CONSOLE_PORT:   "${MLFLOW_MINIO_CONSOLE_PORT:-9001}"
+      DVC_MINIO_PORT:              "${DVC_MINIO_PORT:-9010}"
+      DVC_MINIO_CONSOLE_PORT:      "${DVC_MINIO_CONSOLE_PORT:-9011}"
+      LABEL_STUDIO_PORT:           "${LABEL_STUDIO_PORT:-8080}"
+      LABEL_STUDIO_POSTGRES_PORT:  "${LABEL_STUDIO_POSTGRES_PORT:-5433}"
+      JUPYTER_PORT:                "${JUPYTER_PORT:-8888}"
+      DAGSTER_PORT:                "${DAGSTER_PORT:-3000}"
+      DAGSTER_POSTGRES_PORT:       "${DAGSTER_POSTGRES_PORT:-5434}"
+      EVIDENTLY_PORT:              "${EVIDENTLY_PORT:-8001}"
+      BENTOML_PORT:                "${BENTOML_PORT:-3001}"
+      GRAFANA_PORT:                "${GRAFANA_PORT:-3002}"
+      PROMETHEUS_PORT:             "${PROMETHEUS_PORT:-9090}"
+      CADVISOR_PORT:               "${CADVISOR_PORT:-8082}"
+      VSCODE_PORT:                 "${VSCODE_PORT:-4000}"

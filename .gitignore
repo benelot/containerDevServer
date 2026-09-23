@@ -1,0 +1,5 @@
+# Per-user port generation sentinels
+.ports.*
+
+# Per-service generated env files (bootstrapped from .env.example)
+services/*/.env

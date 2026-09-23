@@ -1,0 +1,25 @@
+baseURL = "/"
+languageCode = "en-us"
+title = "Data Science Labs"
+theme = "hugo-theme-relearn"
+
+[params]
+  themeVariant           = ["relearn-bright", "relearn-dark"]
+  disableLandingPage     = false
+  disableBreadcrumb      = false
+  disableNextPrev        = false
+  disableSearch          = false
+  disableToc             = false
+  ordersectionsby        = "weight"
+  description            = "Hands-on labs for the Container Dev Server data science stack"
+
+[markup.goldmark.extensions]
+  taskList = true
+
+[markup.goldmark.renderer]
+  unsafe = true
+
+[outputs]
+  home    = ["HTML", "RSS", "SEARCH", "SEARCHPAGE"]
+  section = ["HTML", "RSS", "PRINT"]
+  page    = ["HTML", "RSS", "PRINT"]

@@ -1,0 +1,65 @@
+services:
+
+  # ── PostgreSQL: run, event-log, and schedule storage ────────────────────────
+  dagster-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dagster}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dagster_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-dagster}
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dagster} -d ${POSTGRES_DB:-dagster}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Dagster webserver ────────────────────────────────────────────────────────
+  dagster-webserver:
+    build: .
+    command: dagster-webserver -h 0.0.0.0 -p 3000 -w /app/workspace.yaml
+    environment:
+      DAGSTER_HOME: /opt/dagster
+      DAGSTER_PG_CONN_STR: "postgresql://${POSTGRES_USER:-dagster}:${POSTGRES_PASSWORD:-dagster_secret}@dagster-postgres:5432/${POSTGRES_DB:-dagster}"
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://host.docker.internal:5000}
+      MLFLOW_S3_ENDPOINT_URL: ${MLFLOW_S3_ENDPOINT_URL:-http://host.docker.internal:9000}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin_secret}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${DAGSTER_PORT:-3000}:3000"
+    volumes:
+      - dagster_storage:/tmp/dagster
+    depends_on:
+      dagster-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Dagster daemon: schedules, sensors, and run queue ───────────────────────
+  dagster-daemon:
+    build: .
+    command: dagster-daemon run
+    environment:
+      DAGSTER_HOME: /opt/dagster
+      DAGSTER_PG_CONN_STR: "postgresql://${POSTGRES_USER:-dagster}:${POSTGRES_PASSWORD:-dagster_secret}@dagster-postgres:5432/${POSTGRES_DB:-dagster}"
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://host.docker.internal:5000}
+      MLFLOW_S3_ENDPOINT_URL: ${MLFLOW_S3_ENDPOINT_URL:-http://host.docker.internal:9000}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin_secret}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - dagster_storage:/tmp/dagster
+    depends_on:
+      dagster-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  dagster_storage:

@@ -1,0 +1,8 @@
+# Dagster instance config.  DAGSTER_HOME must point to the directory containing this file.
+storage:
+  postgres:
+    postgres_url:
+      env: DAGSTER_PG_CONN_STR
+
+telemetry:
+  enabled: false

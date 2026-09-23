@@ -1,0 +1,44 @@
+services:
+
+  # ── PostgreSQL: Label Studio backend ────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-labelstudio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-labelstudio_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-labelstudio}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-labelstudio} -d ${POSTGRES_DB:-labelstudio}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Label Studio ─────────────────────────────────────────────────────────────
+  label-studio:
+    image: heartexlabs/label-studio:latest
+    environment:
+      DJANGO_DB: default
+      POSTGRE_HOST: postgres
+      POSTGRE_PORT: 5432
+      POSTGRE_USER: ${POSTGRES_USER:-labelstudio}
+      POSTGRE_PASSWORD: ${POSTGRES_PASSWORD:-labelstudio_secret}
+      POSTGRE_NAME: ${POSTGRES_DB:-labelstudio}
+      LABEL_STUDIO_USERNAME: ${LABEL_STUDIO_USERNAME:-admin@example.com}
+      LABEL_STUDIO_PASSWORD: ${LABEL_STUDIO_PASSWORD:-changeme}
+    ports:
+      - "${LABEL_STUDIO_PORT:-8080}:8080"
+    volumes:
+      - label_studio_data:/label-studio/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  label_studio_data:

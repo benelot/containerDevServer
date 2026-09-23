@@ -1,0 +1,8 @@
+---
+# Leave blank to disable proxy configuration entirely.
+# Example: "http://proxy.company.com:3128"
+http_proxy: ""
+https_proxy: ""
+
+# Comma-separated list of hosts that bypass the proxy.
+no_proxy: "localhost,127.0.0.1,::1"

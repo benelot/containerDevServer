@@ -1,0 +1,13 @@
+---
+# Filesystem path where Docker stores images, containers, and volumes.
+# Set to a path on your data disk to keep the OS disk lean.
+# Example: /data/docker  or  /mnt/ssd/docker
+docker_data_root: /var/lib/docker
+
+# OS users to add to the docker group so they can run Docker without sudo.
+# Example: ["alice", "bob"]
+docker_users: []
+
+# Docker log rotation defaults (applied globally to all containers).
+docker_log_max_size: "10m"
+docker_log_max_file: "3"
